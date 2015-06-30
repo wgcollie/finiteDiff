@@ -31,100 +31,83 @@ class BoundaryProperties:
     FIXED = 1
     FLUX = 2
 
-    def __init__(self,lowerBdryPrprty,upperBdryPrprty):
+    def __init__(self,nGridPoints):
         print( "Boundary Properties")
-        self.bdryProperties = [(0,0.0),(0,0.0)]
-
-#Grid
-class gridPoint1d:
-
-    def setStencils1d(ii,m_max):    
-        # l:lower (_ X X)    u:upper (X X _)
-       if ii == 0:
-           self.stencilType = lowerLimStencil
-       elif ii = m_max:
-           self.stencilType = upperLimStencil
-       else:
-           self.stencilType = interiorStencil
-
-    def setCoordinateValue1d(ii,baseValue,delta):
-        x = baseValue + ii*delta
-       return x
- 
-    def __init__(self,ii,gridParameters):
-        m_max = 
-        baseValue = 
-        delta = 
-        self.stencilType = gridPoint1d.setStencils1d(ii)       
-        self.value = setCoordinateValue1d(ii,baseValue,delta)
-
-    def x(self):
-        return self.val
-
-    def bdryValue(self):
-        return self.bdryVal
-
-    def bdryTypeCode(self):
-        return self.bdryType
-
-
-class FiniteDiff_Grid:
-
-    def __init__(self,gridParams):
-        self.GridParams = GridParams
-
-    def __iter__(self):
-        self.ii = 0
-       return self
-    
-    def __next__(self):
-       idx = self.ii
-       if self.ii > Grid.m_max:
-            raise StopIteration
-        self.ii += 1
-        return GridPoint(idx)
-
-
-class finiteDiff_1dGrid:
-
-    def __init__(self,nMeshPoints,interval):
-        print( "1d Grid" )
-        self.nDim = 1
-        self.interval = interval
-        self.nMeshPoints = nMeshPoints
-        self.meshSize = (interval[1]-interval[0])/nMeshPoints
+        self.FIRST = 0
+        self.LAST = nGridPoints
         self.bdryProperties = [(0,0.0),(0,0.0)]
 
     def setFirstBoundaryProperties(self,bdType,bdValue):
         print( "Set Boundary Properties", end=" " )
+        if bdType == 'FIXED':
+            bt = .FIXED
+        elif bdTypd == 'FLUX':
+            bt = .FLUX
+        else:
+            print 'Invalid Boundary Type %s for first boundary point'%bdType
         self.bdryProperties[0] = (bdType,bdValue)
         print( "Type: %s, Value: %f"% (bdType, bdValue) )
 
     def setLastBoundaryProperties(self,bdType,bdValue):
         print( "Set Boundary Properties", end=" " )
+        if bdType == 'FIXED':
+            bt = .FIXED
+        elif bdTypd == 'FLUX':
+            bt = .FLUX
+        else:
+            print 'Invalid Boundary Type %s for last boundary point'%bdType
         self.bdryProperties[1] = (bdType,bdValue)
         print( "Type: %s, Value: %f"% (bdType, bdValue) )
 
+    def getFirstBdryPrprty(self):
+        return self.bdryProperties[0][0]
 
-    def nGridPoints(self):
-        return self.nMeshPoints
+    def getLastBdryPrprty(self):
+        return self.bdryProperties[1][0]
+
+    def getFirstBdryValue(self):
+        return self.bdryProperties[0][1]
+
+    def getLastBdryValue(self):
+        return self.bdryProperties[1][1]
+
+#Grid
+class gridPoint1d:
+
+    baseValue = 0
+    delta = 0
+
+    def setCoordinateValue1d(ii):
+        x = gridPoint1d.baseValue + ii*gridPoint1d.delta
+       return x
+ 
+    def __init__(self,ii):
+        self.ii = ii
+        self.value = setCoordinateValue1d(ii)
+
+    def x(self):
+        return self.value
+
+    def idx(self):
+        return self.ii
 
 class FiniteDiff_Grid:
 
     def __init__(self,gridParams):
+        gridPoint1d.baseValue
+        gridPoint1d.delta
         self.GridParams = GridParams
 
     def __iter__(self):
         self.ii = 0
-       return self
+        return self
     
     def __next__(self):
-       idx = self.ii
-       if self.ii > Grid.m_max:
+        idx = self.ii
+        if self.ii > Grid.m_max:
             raise StopIteration
         self.ii += 1
-        return GridPoint(idx)
-
+        return GridPoint(idx,self.GridParams)
 
 class finiteDiff_sources:
 
@@ -171,15 +154,17 @@ class finiteDiff_SystemOfEquations(object):
         print( "Assemble System Of Equations" )
         for p in self.grid:
             self.appEqnMthds.equationContribution(sources,p)
+        self.appEqnMthds.assembleEqns()
             
     def solveSystemOfEquations(self):
         pass
 
 class finiteDiff_SystemOfEquations1dHeatMthds: 
 
-    def __init__(self,grid):
+    def __init__(self,grid,bdryProperties):
        print( "System of Equations: 1d Heat" )
        self.grid = grid
+       seld.bdryProperties = bdryProperties
        self.dd1 = []
        self.dd2 = []
        self.dd3 = []
@@ -187,21 +172,21 @@ class finiteDiff_SystemOfEquations1dHeatMthds:
 
     def equationContribution(self,sources,gridPoint):
         print( "equation contribution" )
-        if gridPoint.bdryIdx() == BoundaryProperties.FIRST:
-            if gridPointp.bdryTypeCode() == gridPoint.FIXED:
+        if gridPoint.bdryIdx() == self.BoundaryProperties.FIRST:
+            if getFirstBdryType() == self.BoundaryProperties.FIXED:
                 self.dd2[gridPointp.ii] = 1.0
                 self.dd3[gridPointp.ii] = 0.0
-                self.vector[gridPointp.ii] = gridPointp.bdryValue()
-            elif gridPointp.bdryTypeCode() == gridPoint.FLUX:
+                self.vector[gridPointp.ii] = self.BoundaryProperties.getFirstBdryValue()
+            elif getFirstBdryType() == self.BoundaryProperties.FLUX:
                 self.dd2[gridPointp.ii] = -1.0
                 self.dd3[gridPointp.ii] = 1.0
                 self.vector[gridPointp.ii] = sources.evaluateSources(p.x())
-        elif gridPointp.bdryIdx() == BoundaryProperties.LAST:
-            if gridPointp.bdryTypeCode() == gridPoint.FIXED:
+        elif gridPointp.bdryIdx() == self.BoundaryProperties.LAST:
+            if getLastBdryType() == self.BoundaryProperties.FIXED:
                 self.dd1[gridPointp.ii] = 0.0
                 self.dd2[gridPointp.ii] = 1.0
-                self.vector[gridPointp.ii] = gridPointp.bdryValue()
-            elif gridPointp.bdryTypeCode() == gridPoint.FLUX:
+                self.vector[gridPointp.ii] = self.BoundaryProperties.getLastBdryValue()
+            elif getLastBdryType() == self.BoundaryProperties.FLUX:
                 self.dd1[gridPointp.ii] = -1.0
                 self.dd2[gridPointp.ii] = 2.0
                 self.vector[gridPointp.ii] = sources.evaluateSources(p.x())
