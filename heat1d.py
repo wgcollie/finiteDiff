@@ -11,8 +11,6 @@ heatSource = "Exponential"
 HeatEquationResultFile = "HeatEquationSolutionFile.dat"
 
 #Constants
-FIXED = 0
-FLUX = 1
 
 class GridParameters:
 
@@ -40,22 +38,22 @@ class BoundaryProperties:
     def setFirstBoundaryProperties(self,bdType,bdValue):
         print( "Set Boundary Properties", end=" " )
         if bdType == 'FIXED':
-            bt = .FIXED
+            bt = BoundaryProperties.FIXED
         elif bdTypd == 'FLUX':
-            bt = .FLUX
+            bt = BoundaryProperties.FLUX
         else:
-            print 'Invalid Boundary Type %s for first boundary point'%bdType
+            print( 'Invalid Boundary Type %s for first boundary point'%bdType )
         self.bdryProperties[0] = (bdType,bdValue)
         print( "Type: %s, Value: %f"% (bdType, bdValue) )
 
     def setLastBoundaryProperties(self,bdType,bdValue):
         print( "Set Boundary Properties", end=" " )
         if bdType == 'FIXED':
-            bt = .FIXED
-        elif bdTypd == 'FLUX':
-            bt = .FLUX
+            bt = BoundaryProperties.FIXED
+        elif bdType == 'FLUX':
+            bt = BoundaryProperties.FLUX
         else:
-            print 'Invalid Boundary Type %s for last boundary point'%bdType
+            print( 'Invalid Boundary Type %s for last boundary point'%bdType )
         self.bdryProperties[1] = (bdType,bdValue)
         print( "Type: %s, Value: %f"% (bdType, bdValue) )
 
@@ -72,14 +70,14 @@ class BoundaryProperties:
         return self.bdryProperties[1][1]
 
 #Grid
-class gridPoint1d:
+class GridPoint1d:
 
     baseValue = 0
     delta = 0
 
     def setCoordinateValue1d(ii):
         x = gridPoint1d.baseValue + ii*gridPoint1d.delta
-       return x
+        return x
  
     def __init__(self,ii):
         self.ii = ii
@@ -94,9 +92,7 @@ class gridPoint1d:
 class FiniteDiff_Grid:
 
     def __init__(self,gridParams):
-        gridPoint1d.baseValue
-        gridPoint1d.delta
-        self.GridParams = GridParams
+        self.GridParams = gridParams
 
     def __iter__(self):
         self.ii = 0
@@ -104,10 +100,10 @@ class FiniteDiff_Grid:
     
     def __next__(self):
         idx = self.ii
-        if self.ii > Grid.m_max:
+        if self.ii > self.GridParams.nMeshPoints:
             raise StopIteration
         self.ii += 1
-        return GridPoint(idx,self.GridParams)
+        return GridPoint1d(idx,self.GridParams)
 
 class finiteDiff_sources:
 
@@ -147,10 +143,11 @@ class finiteDiff_1dSolution:
 #System of Equations
 class finiteDiff_SystemOfEquations(object):
 
-    def __init__(self,appSpecificEqnMethds):
-        self.appEqnMthds
+    def __init__(self,grid,appSpecificEqnMethds):
+        self.grid = grid
+        self.appEqnMthds = appSpecificEqnMethds
 
-    def assembleSystemOfEquations(self,grid,sources):
+    def assembleSystemOfEquations(self,sources):
         print( "Assemble System Of Equations" )
         for p in self.grid:
             self.appEqnMthds.equationContribution(sources,p)
@@ -161,10 +158,9 @@ class finiteDiff_SystemOfEquations(object):
 
 class finiteDiff_SystemOfEquations1dHeatMthds: 
 
-    def __init__(self,grid,bdryProperties):
+    def __init__(self,bdryProperties):
        print( "System of Equations: 1d Heat" )
-       self.grid = grid
-       seld.bdryProperties = bdryProperties
+       self.bdryProperties = bdryProperties
        self.dd1 = []
        self.dd2 = []
        self.dd3 = []
@@ -172,32 +168,31 @@ class finiteDiff_SystemOfEquations1dHeatMthds:
 
     def equationContribution(self,sources,gridPoint):
         print( "equation contribution" )
-        if gridPoint.bdryIdx() == self.BoundaryProperties.FIRST:
-            if getFirstBdryType() == self.BoundaryProperties.FIXED:
+        if gridPoint.bdryIdx() == BoundaryProperties.FIRST:
+            if getFirstBdryType() == BoundaryProperties.FIXED:
                 self.dd2[gridPointp.ii] = 1.0
                 self.dd3[gridPointp.ii] = 0.0
-                self.vector[gridPointp.ii] = self.BoundaryProperties.getFirstBdryValue()
-            elif getFirstBdryType() == self.BoundaryProperties.FLUX:
+                self.vector[gridPointp.ii] = self.bdryProperties.getFirstBdryValue()
+            elif getFirstBdryType() == BoundaryProperties.FLUX:
                 self.dd2[gridPointp.ii] = -1.0
                 self.dd3[gridPointp.ii] = 1.0
                 self.vector[gridPointp.ii] = sources.evaluateSources(p.x())
-        elif gridPointp.bdryIdx() == self.BoundaryProperties.LAST:
-            if getLastBdryType() == self.BoundaryProperties.FIXED:
+        elif gridPointp.bdryIdx() == BoundaryProperties.LAST:
+            if getLastBdryType() == BoundaryProperties.FIXED:
                 self.dd1[gridPointp.ii] = 0.0
                 self.dd2[gridPointp.ii] = 1.0
-                self.vector[gridPointp.ii] = self.BoundaryProperties.getLastBdryValue()
-            elif getLastBdryType() == self.BoundaryProperties.FLUX:
+                self.vector[gridPointp.ii] = self.bdryProperties.getLastBdryValue()
+            elif getLastBdryType() == BoundaryProperties.FLUX:
                 self.dd1[gridPointp.ii] = -1.0
-                self.dd2[gridPointp.ii] = 2.0
+                self.dd2[gridPointp.ii] = 1.0
                 self.vector[gridPointp.ii] = sources.evaluateSources(p.x())
         else:
             self.dd1[gridPointp.ii] =  1.0
             self.dd2[gridPointp.ii] = -2.0
             self.dd3[gridPointp.ii] =  1.0
-            self.vector[gridPointp.ii] = sources.evaluateSources(p.x())
-  
+            self.vector[gridPointp.ii] = sources.evaluateSources(p.x())  
 
-    def assembleEqns(self)
+    def assembleEqns(self):
         data = numpy.array( [self.dd1, self.dd2, self.dd3] )
         offsets = numpy.array( [-1,0,1])
         self.matrix = dia_matrix( (data,offsets), shape=(self.nn,self.nn))
@@ -216,16 +211,18 @@ class finiteDiff_SystemOfEquations1dHeatMthds:
 #Main ===============
 print( "1D Heat Equation Solver" )
 
-xx = finiteDiff_1dGrid(nMeshPoints,problemInterval)
+gridParams = GridParameters(10,[0.0,1.0])
+xx = FiniteDiff_Grid(gridParams)
 
-xx.setFirstBoundaryProperties('FIXED',0.0)
-xx.setLastBoundaryProperties('FLUX',1.0)
+bdryPrp = BoundaryProperties(gridParams.nMeshPoints)
+bdryPrp.setFirstBoundaryProperties('FIXED',0.0)
+bdryPrp.setLastBoundaryProperties('FLUX',1.0)
 
-heatSource = finiteDiff_sourceElement( 2.0 )
 deqSources = finiteDiff_sources()
-deqSources.addSource( heatSource )
+deqSources.addSource( finiteDiff_sourceElement( 2.0 ) )
 
-AAbb = finiteDiff_SystemOfEquations1dHeat( xx )
+soeMethods = finiteDiff_SystemOfEquations1dHeatMthds(bdryPrp)
+AAbb = finiteDiff_SystemOfEquations( xx,soeMethods )
 fd_Staus = AAbb.assembleSystemOfEquations( deqSources )
 if fd_Condition:
     SOLVED = AAbb.solveSystemOfEquations()
