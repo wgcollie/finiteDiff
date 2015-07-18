@@ -172,30 +172,34 @@ class finiteDiff_SystemOfEquations(object):
 
 class finiteDiff_SystemOfEquations1dHeatMthds: 
 
-    def __init__(self,neq,bdryProperties):
+    def __init__(self,gridParams,bdryProperties):
        print( "System of Equations: 1d Heat" )
-       self.neq = neq
+       self.gridParams = gridParams
        self.bdryProperties = bdryProperties
-       self.dd1 = (neq+1)*[0.0]
-       self.dd2 = (neq+1)*[0.0]
-       self.dd3 = (neq+1)*[0.0]
-       self.vctr = (neq+1)*[0.0]
+       neq = self.gridParams.nPoints+1
+       self.dd1 = (neq)*[0.0]
+       self.dd2 = (neq)*[0.0]
+       self.dd3 = (neq)*[0.0]
+       self.vctr = (neq)*[0.0]
        print( [self.dd1, self.dd2, self.dd3] )
 
     def equationContribution(self,sources,gridPoint):
         ii = gridPoint.idx()
         pp = gridPoint.x()
+        h = self.gridParams.meshSize
+        hSquared = h*h
         print( "equation contribution", ii, pp, end=" " )
         if ii == self.bdryProperties.FIRST:
             if self.bdryProperties.getFirstBdryType() == BoundaryProperties.FIXED:
                 print( "First Fixed" )
                 self.dd2[ii] = 1.0
+                self.dd3[ii+1] = 0.0
                 self.vctr[ii] = self.bdryProperties.getFirstBdryValue()
             elif self.bdryProperties.getFirstBdryType() == BoundaryProperties.FLUX:
                 print( "First Flux" )
-                self.dd2[ii] = -1.0
-                self.dd3[ii] = 1.0
-                self.vctr[gridPoint.ii] = sources.evaluateSources(pp)
+                self.dd2[ii] = -2.0
+                self.dd3[ii+1] = 2.0
+                self.vctr[gridPoint.ii] = -2*h - 2*hSquared*sources.evaluateSources(pp)
         elif ii == self.bdryProperties.LAST:
             if self.bdryProperties.getLastBdryType() == BoundaryProperties.FIXED:
                 print( "Last Fixed" )
@@ -203,22 +207,23 @@ class finiteDiff_SystemOfEquations1dHeatMthds:
                 self.vctr[ii] = self.bdryProperties.getLastBdryValue()
             elif self.bdryProperties.getLastBdryType() == BoundaryProperties.FLUX:
                 print( "Last Flux" )
-                self.dd1[ii] = -1.0
-                self.dd2[ii] = 1.0
-                self.vctr[ii] = sources.evaluateSources(pp)
+                self.dd1[ii-1] = 2.0
+                self.dd2[ii] = -2.0
+                self.vctr[ii] = -2*h - 2*hSquared*sources.evaluateSources(pp)
         else:
-            self.dd1[ii] =  1.0
+            self.dd1[ii-1] =  1.0
             self.dd2[ii] = -2.0
-            self.dd3[ii] =  1.0
-            self.vctr[ii] = sources.evaluateSources(pp)
+            self.dd3[ii+1] =  1.0
+            self.vctr[ii] = -hSquared*sources.evaluateSources(pp)
         print( self.dd1[ii], self.dd2[ii], self.dd3[ii] )
 
     def assembleEqns(self):
         print( "Assemble Equation Components" )
         print( [self.dd1, self.dd2, self.dd3] )
+        neq = self.gridParams.nPoints+1
         data = numpy.array( [self.dd1, self.dd2, self.dd3] )
         offsets = numpy.array( [-1,0,1])
-        self.matrix = dia_matrix( (data,offsets), shape=(self.neq+1,self.neq+1))
+        self.matrix = dia_matrix( (data,offsets), shape=(neq,neq))
         status = True
         print( self.matrix.todense() )
         print( self.vctr )
@@ -239,7 +244,7 @@ print( "First boundary node: %d, Last boundary node: %d" \
 deqSources = finiteDiff_sources()
 deqSources.addSource( finiteDiff_sourceElement( 2.0 ) )
 
-soeMethods = finiteDiff_SystemOfEquations1dHeatMthds(grdPrms.nPoints,bdryPrp)
+soeMethods = finiteDiff_SystemOfEquations1dHeatMthds(grdPrms,bdryPrp)
 AAbb = finiteDiff_SystemOfEquations( xx,soeMethods )
 fd_Status = AAbb.assembleSystemOfEquations( deqSources )
 print( fd_Status )
