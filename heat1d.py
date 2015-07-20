@@ -166,6 +166,11 @@ class finiteDiff_SystemOfEquations(object):
 
     def saveSolution(self, fileName):
         print( "Save the solution in file %s"% fileName )
+        for p in self.grid:
+            x = p.x()
+            ii = p.idx()
+            print( ii, x, 0.5*x*x, self.solution[ii] )
+            
         fp = open( fileName, 'w' )
         for num in self.solution:
             fp.write('%f\n'%num)
@@ -209,7 +214,7 @@ class finiteDiff_SystemOfEquations1dHeatMthds:
                 print( "Last Flux" )
                 self.dd1[ii-1] = 2.0
                 self.dd2[ii] = -2.0
-                self.vctr[ii] = -2*h - 2*hSquared*sources.evaluateSources(pp)
+                self.vctr[ii] = -2*h - hSquared*sources.evaluateSources(pp)
         else:
             self.dd1[ii-1] =  1.0
             self.dd2[ii] = -2.0
@@ -242,7 +247,7 @@ print( "First boundary node: %d, Last boundary node: %d" \
        %(bdryPrp.FIRST,bdryPrp.LAST ) )
 
 deqSources = finiteDiff_sources()
-deqSources.addSource( finiteDiff_sourceElement( 2.0 ) )
+deqSources.addSource( finiteDiff_sourceElement( 0.0 ) )
 
 soeMethods = finiteDiff_SystemOfEquations1dHeatMthds(grdPrms,bdryPrp)
 AAbb = finiteDiff_SystemOfEquations( xx,soeMethods )
